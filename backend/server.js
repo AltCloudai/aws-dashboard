@@ -8,6 +8,7 @@ import s3Routes from "./routes/s3.routes.js";
 import ec2Routes from "./routes/ec2.routes.js";
 
 import { authMiddleware } from "./middleware/auth.middleware.js";
+import { authLimiter, protectedApiLimiter } from "./middleware/rateLimiter.middleware.js";
 import errorMiddleware from "./middleware/error.middleware.js";
 import notFoundMiddleware from "./middleware/notFound.middleware.js";
 
@@ -33,7 +34,7 @@ app.use(cors({
 
 app.use(express.json());
 
-app.use("/api/auth", authRoutes);
+app.use("/api/auth", authLimiter, authRoutes);
 
 app.get("/api/health", (req, res) => {
   res.status(200).json({
@@ -42,8 +43,8 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-app.use("/api/s3", authMiddleware, s3Routes);
-app.use("/api/ec2", authMiddleware, ec2Routes);
+app.use("/api/s3", protectedApiLimiter, authMiddleware, s3Routes);
+app.use("/api/ec2", protectedApiLimiter, authMiddleware, ec2Routes);
 
 app.use(notFoundMiddleware);
 app.use(errorMiddleware);
