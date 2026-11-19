@@ -1,7 +1,11 @@
 import { useState } from "react";
 import "./App.css";
 
-const API = "http://localhost:3001/api";
+const API = import.meta.env.VITE_API_URL;
+
+if (!API) {
+  throw new Error("VITE_API_URL must be configured");
+}
 
 function App() {
   const [apiToken, setApiToken] = useState("");
