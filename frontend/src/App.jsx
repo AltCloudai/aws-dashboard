@@ -8,8 +8,9 @@ if (!API) {
 }
 
 function App() {
-  const [apiToken, setApiToken] = useState("");
-  const [tokenInput, setTokenInput] = useState("");
+  const [authToken, setAuthToken] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [buckets, setBuckets] = useState([]);
   const [objects, setObjects] = useState([]);
   const [instances, setInstances] = useState([]);
@@ -31,12 +32,12 @@ function App() {
   const [deleteObjectKey, setDeleteObjectKey] = useState("");
 
   async function apiFetch(url, options = {}) {
-    if (!apiToken) {
-      throw new Error("Connect with the backend API token first");
+    if (!authToken) {
+      throw new Error("Log in to the backend first");
     }
 
     const headers = new Headers(options.headers);
-    headers.set("Authorization", `Bearer ${apiToken}`);
+    headers.set("Authorization", `Bearer ${authToken}`);
     return fetch(url, { ...options, headers });
   }
 
@@ -53,35 +54,37 @@ function App() {
     }
   }
 
-  async function connectApi(event) {
+  async function login(event) {
     event.preventDefault();
-    const candidate = tokenInput.trim();
-    if (!candidate) {
-      setError("Backend API token is required");
+    if (!username || !password) {
+      setError("Username and password are required");
       return;
     }
 
     await run(async () => {
-      const response = await fetch(`${API}/health`, {
-        headers: { Authorization: `Bearer ${candidate}` }
+      const response = await fetch(`${API}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password })
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.message || "Failed to connect to backend");
-      setApiToken(candidate);
-      setTokenInput("");
-      setMessage("Connected to backend");
+      if (!response.ok) throw new Error(data.message || "Login failed");
+      setAuthToken(data.token);
+      setPassword("");
+      setMessage("Logged in");
     });
   }
 
-  function disconnectApi() {
-    setApiToken("");
-    setTokenInput("");
+  function logout() {
+    setAuthToken("");
+    setUsername("");
+    setPassword("");
     setBuckets([]);
     setObjects([]);
     setInstances([]);
     setHealth({});
     setError("");
-    setMessage("Disconnected from backend");
+    setMessage("Logged out");
   }
 
   async function checkBackendHealth() {
@@ -305,21 +308,25 @@ function App() {
       {error && <p className="message error">{error}</p>}
 
       <section>
-        <h2>Backend Access</h2>
-        <form className="row" onSubmit={connectApi}>
+        <h2>Login</h2>
+        <form className="row" onSubmit={login}>
+          <input
+            autoComplete="username"
+            placeholder="Username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+          />
           <input
             type="password"
-            autoComplete="off"
-            aria-label="Backend API token"
-            placeholder="Backend API token"
-            value={tokenInput}
-            onChange={(e) => setTokenInput(e.target.value)}
+            autoComplete="current-password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
           />
-          <button type="submit" disabled={loading}>Connect</button>
-          <button type="button" onClick={disconnectApi} disabled={!apiToken}>Disconnect</button>
-          <span>{apiToken ? "Connected" : "Not connected"}</span>
+          <button type="submit" disabled={loading}>Login</button>
+          <button type="button" onClick={logout} disabled={!authToken}>Logout</button>
+          <span>{authToken ? "Logged in" : "Not logged in"}</span>
         </form>
-        <p>The token is kept in memory only and cleared when you disconnect or reload.</p>
       </section>
 
       <section>
