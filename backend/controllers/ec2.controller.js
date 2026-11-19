@@ -19,6 +19,15 @@ const validateInstanceId = (instanceId) => {
   }
 };
 
+const allowedValues = (value) =>
+  value ? value.split(",").map((item) => item.trim()).filter(Boolean) : [];
+
+const allowedAmis = allowedValues(process.env.ALLOWED_AMIS || process.env.AMI_ID);
+const allowedInstanceTypes = allowedValues(process.env.ALLOWED_INSTANCE_TYPES || process.env.INSTANCE_TYPE);
+const allowedSubnets = allowedValues(process.env.ALLOWED_SUBNETS || process.env.SUBNET_ID);
+const allowedSecurityGroups = allowedValues(process.env.ALLOWED_SECURITY_GROUPS || process.env.SECURITY_GROUP_ID);
+const allowedKeyNames = allowedValues(process.env.ALLOWED_KEY_NAMES || process.env.KEY_NAME);
+
 // 1. LIST INSTANCES
 export const listInstances = async (req, res) => {
   const data = await ec2.send(
@@ -76,6 +85,20 @@ export const launchInstance = async (req, res) => {
     return res.status(400).json({
       success: false,
       message: "AMI, instance type, subnet, security groups and key pair are required"
+    });
+  }
+
+  if (
+    (allowedAmis.length && !allowedAmis.includes(imageId)) ||
+    (allowedInstanceTypes.length && !allowedInstanceTypes.includes(instanceType)) ||
+    (allowedSubnets.length && !allowedSubnets.includes(subnetId)) ||
+    (allowedKeyNames.length && !allowedKeyNames.includes(keyName)) ||
+    (allowedSecurityGroups.length &&
+      !securityGroupIds.every((groupId) => allowedSecurityGroups.includes(groupId)))
+  ) {
+    return res.status(403).json({
+      success: false,
+      message: "Launch parameters are not approved"
     });
   }
 
@@ -170,6 +193,13 @@ export const modifyInstanceType = async (req, res) => {
     return res.status(400).json({
       success: false,
       message: "Instance type is required"
+    });
+  }
+
+  if (allowedInstanceTypes.length && !allowedInstanceTypes.includes(instanceType)) {
+    return res.status(403).json({
+      success: false,
+      message: "Instance type is not approved"
     });
   }
 
