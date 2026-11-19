@@ -189,7 +189,7 @@ function App() {
       const response = await apiFetch(`${API}/s3/buckets/${encodeURIComponent(targetBucket)}/objects/${encodeURIComponent(targetKey)}/download`);
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || "Failed to get download URL");
-      window.open(data.downloadUrl, "_blank");
+      window.open(data.downloadUrl, "_blank", "noopener,noreferrer");
     });
   }
 
